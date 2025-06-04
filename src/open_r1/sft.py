@@ -32,6 +32,8 @@ accelerate launch --config_file=recipes/accelerate_configs/zero3.yaml src/open_r
     --use_liger_kernel \
     --output_dir data/OpenR1-Distill-7B
 """
+import os
+os.environ["WANDB_DISABLED"] = "true"
 
 import logging
 import os
