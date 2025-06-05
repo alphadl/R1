@@ -11,20 +11,22 @@ dataset_name: open-r1/OpenR1-Math-220k
 dataset_prompt_column: problem
 system_prompt: "You are a helpful AI Assistant that provides well-reasoned and detailed responses. You first think about the reasoning process as an internal monologue and then provide the user with the answer. Respond in the following format: <think>\n...\n</think>\n<answer>\n...\n</answer>"
 
+# 添加数据过滤选项
+max_length: 6144  # 过滤掉过长的序列
+
 # GRPO trainer config
 bf16: true
 use_vllm: true
-vllm_gpu_memory_utilization: 0.7
-vllm_max_model_len: 4096
+vllm_gpu_memory_utilization: 0.6  # 进一步降低VLLM GPU内存利用率
 do_eval: false
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 16  # 增加梯度累积步数
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
 hub_model_id: R1-Distill-0.6B-Qwen-GRPO
 hub_strategy: every_save
-learning_rate: 1.0e-06
-log_completions: true
+learning_rate: 5.0e-06
+log_completions: true  
 log_level: info
 logging_first_step: true
 logging_steps: 1
@@ -35,25 +37,26 @@ lr_scheduler_kwargs:
 max_prompt_length: 512
 max_completion_length: 2048
 max_steps: -1
-num_generations: 8
+num_generations: 8  # 进一步减少候选生成数量到8
 num_train_epochs: 1
 output_dir: data/R1-Distill-0.6B-Qwen-GRPO
 overwrite_output_dir: true
-per_device_eval_batch_size: 2
-per_device_train_batch_size: 2
+per_device_eval_batch_size: 4  # 进一步减少评估批次大小
+per_device_train_batch_size: 4  # 进一步减少训练批次大小到4
 push_to_hub: true
 report_to: []
 reward_funcs:
 - accuracy
-- format
+- format  
 - tag_count
 reward_weights:
 - 1.0
 - 1.0
 - 1.0
-save_strategy: "epoch"
-save_total_limit: 1
+save_strategy: "steps"  # 修改为按步数保存
+save_steps: 100  # 设置为1/135 epoch的步数
+save_total_limit: 2  # 增加保存限制
 seed: 42
 temperature: 0.7
 use_liger_kernel: true
-warmup_ratio: 0.1
+warmup_ratio: 0.1 

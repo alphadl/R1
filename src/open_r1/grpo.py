@@ -176,7 +176,6 @@ def main(script_args, training_args, model_args):
         logger.info("Pushing to hub...")
         trainer.push_to_hub(**kwargs)
 
-
 if __name__ == "__main__":
     parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
