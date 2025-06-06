@@ -1,0 +1,106 @@
+# Enhanced GRPO Configuration for Qwen2.5-1.5B-Instruct
+# 展示新增功能的增强版配置
+
+# 基础模型配置
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+hub_model_id: qwen2.5-1.5b-instruct-grpo-enhanced
+
+# 训练数据集
+dataset_name: open-r1/Mixture-of-Thoughts
+dataset_config: all
+dataset_prompt_column: prompt
+
+# 评估数据集 (新增)
+eval_dataset_name: gsm8k
+eval_dataset_config: main
+eval_dataset_split: test
+
+# 增强的奖励函数配置
+reward_funcs:
+  - accuracy
+  - format
+  - reasoning_steps
+  - tag_count
+  - mathematical_rigor
+
+# 奖励函数权重 (新增)
+reward_weights:
+  - 4.0    # accuracy: 高权重
+  - 1.0    # format: 标准权重
+  - 2.0    # reasoning_steps: 中等权重
+  - 1.0    # tag_count: 标准权重
+  - 1.5    # mathematical_rigor: 中等权重
+
+# 训练超参数
+learning_rate: 3.0e-6
+num_train_epochs: 2
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 4
+gradient_accumulation_steps: 4
+max_seq_length: 4096
+max_completion_length: 2048
+
+# 生成参数
+temperature: 0.7
+top_p: 0.95
+top_k: 50
+
+# 评估生成参数 (新增)
+eval_temperature: 0.6
+eval_top_p: 0.9
+eval_max_new_tokens: 1024
+
+# 实时评估配置 (新增)
+eval_steps: 50          # 每50步评估一次
+eval_on_start: true     # 训练开始前评估
+max_eval_samples: 50    # 限制评估样本数量
+
+# 拒绝采样配置 (新增)
+use_reject_sampling: true
+max_resample_attempts: 3
+reject_sampling_threshold: 0.6
+
+# 性能优化 (新增)
+torch_empty_cache_steps: 5
+max_num_train_samples: 1000  # 快速测试用
+debug_mode: true
+
+# 高级日志配置 (新增)
+log_completion_details: true
+save_completions: false
+
+# 保存策略
+save_strategy: steps
+save_steps: 100
+save_strategy_steps: 100
+
+# Weights & Biases配置
+wandb_project: R1-Enhanced-Demo
+wandb_entity: your-entity
+run_name: qwen2.5-1.5b-enhanced-grpo
+
+# 输出目录
+output_dir: ./data/qwen2.5-1.5b-enhanced-grpo
+
+# 其他训练配置
+bf16: true
+gradient_checkpointing: true
+dataloader_drop_last: true
+remove_unused_columns: false
+use_liger_kernel: true
+
+# 聊天模板 (确保兼容性)
+chat_template: |
+  {% for message in messages %}
+    {% if message['role'] == 'user' %}
+      <|im_start|>user
+      {{ message['content'] }}<|im_end|>
+    {% elif message['role'] == 'assistant' %}
+      <|im_start|>assistant
+      {{ message['content'] }}<|im_end|>
+    {% endif %}
+  {% endfor %}
+  <|im_start|>assistant
+
+# EOS token
+eos_token: "<|im_end|>" 
