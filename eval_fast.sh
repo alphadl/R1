@@ -1,8 +1,8 @@
 export VLLM_WORKER_MULTIPROC_METHOD=spawn # Required for vLLM
-export CUDA_VISIBLE_DEVICES=1 # Use GPU 2 and 3
+export CUDA_VISIBLE_DEVICES=0,1,2,3 # Use GPU 2 and 3
 export NUMEXPR_MAX_THREADS=128 # Utilize all 128 cores for numerical computations
 
-NUM_GPUS=1
+NUM_GPUS=4
 
 #MODEL=data/OpenR1-Distill-0.6B
 #MODEL=Qwen/Qwen3-0.6B-Base
@@ -19,10 +19,10 @@ OUTPUT_DIR=data/evals/$MODEL
 #    --output-dir $OUTPUT_DIR
 
 # Math 500  
-TASK=math_500
-lighteval vllm $MODEL_ARGS "lighteval|$TASK|0|0" \
-    --use-chat-template \
-    --output-dir $OUTPUT_DIR
+#TASK=math_500
+#lighteval vllm $MODEL_ARGS "lighteval|$TASK|0|0" \
+#    --use-chat-template \
+#    --output-dir $OUTPUT_DIR
 
 # GPQA Diamond
 TASK=gpqa:diamond
