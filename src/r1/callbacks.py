@@ -1,6 +1,6 @@
 """
-训练回调函数模块
-提供训练过程中的回调功能
+Training callback function module
+Provides callback functionality during training
 """
 
 from .utils.callbacks import *

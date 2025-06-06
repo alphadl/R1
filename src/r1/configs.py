@@ -126,7 +126,7 @@ class ScriptArguments(trl.ScriptArguments):
 class GRPOConfig(trl.GRPOConfig):
     """Enhanced configuration for GRPO training."""
 
-    # 添加模型路径字段
+    # Add model path field
     model_name_or_path: Optional[str] = field(
         default=None, 
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models."}
@@ -231,7 +231,7 @@ class GRPOScriptArguments(ScriptArguments):
             Configuration for evaluation dataset.
     """
 
-    # 添加模型路径字段
+    # Add model path field
     model_name_or_path: Optional[str] = field(
         default=None,
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models."},
@@ -398,18 +398,18 @@ def load_config(config_path: Union[str, Path]) -> GRPOScriptArguments:
         
 def create_grpo_config_from_script_args(script_args: GRPOScriptArguments) -> GRPOConfig:
     """
-    从ScriptArguments创建GRPOConfig
+    Create GRPOConfig from ScriptArguments
     
     Args:
-        script_args: 脚本参数
+        script_args: Script arguments
         
     Returns:
-        GRPOConfig: GRPO配置对象
+        GRPOConfig: GRPO configuration object
     """
-    # 获取GRPOConfig的字段
+    # Get GRPOConfig fields
     grpo_config_fields = set(GRPOConfig.__dataclass_fields__.keys())
     
-    # 从script_args中提取GRPOConfig相关的字段
+    # Extract GRPOConfig related fields from script_args
     grpo_config_data = {}
     
     for field_name in grpo_config_fields:

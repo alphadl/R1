@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Enhanced reward functions for GRPO training."""
+"""
+Modular reward calculation system
+"""
 
 import re
 import numpy as np
@@ -23,17 +25,17 @@ from math_verify import LatexExtractionConfig, parse, verify
 
 
 class RewardCalculator:
-    """模块化奖励计算器"""
+    """Modular reward calculator"""
     
     def __init__(self, reward_funcs: List[str], reward_weights: List[float] = None):
         self.reward_funcs = reward_funcs
         self.reward_weights = reward_weights or [1.0] * len(reward_funcs)
         
         if len(self.reward_funcs) != len(self.reward_weights):
-            raise ValueError("奖励函数数量和权重数量必须一致")
+            raise ValueError("Number of reward functions and weights must be consistent")
     
     def compute_rewards(self, completions: list[list[dict[str, str]]], **kwargs) -> Dict[str, List[float]]:
-        """计算所有奖励函数的分数"""
+        """Calculate scores for all reward functions"""
         all_rewards = {}
         
         for func_name, weight in zip(self.reward_funcs, self.reward_weights):
@@ -42,11 +44,11 @@ class RewardCalculator:
                 all_rewards[func_name] = rewards
                 all_rewards[f"{func_name}_weighted"] = [r * weight for r in rewards]
         
-        # 计算加权总分
+        # Calculate weighted total score
         total_rewards = []
         for i in range(len(completions)):
-            total = sum(all_rewards[f"{func}_weighted"][i] for func in self.reward_funcs)
-            total_rewards.append(total)
+            total_score = sum(all_rewards[f"{func}_weighted"][i] for func in self.reward_funcs)
+            total_rewards.append(total_score)
         
         all_rewards["total"] = total_rewards
         return all_rewards
@@ -81,23 +83,23 @@ def accuracy_reward(completions: list[list[dict[str, str]]], solution: list[str]
                     extraction_mode="first_match",
                 )
                 
-                # 计算准确性奖励
+                # Calculate accuracy reward
                 try:
                     base_reward = float(verify(gold_parsed, answer_parsed))
                     
-                    # 添加置信度奖励
+                    # Add confidence reward
                     confidence_bonus = _calculate_confidence_bonus(content)
                     reward = base_reward + confidence_bonus
                     
                 except Exception as e:
-                    print(f"验证失败: {e}, 答案: {answer_parsed}, 标准答案: {gold_parsed}")
+                    print(f"Verification failed: {e}, answer: {answer_parsed}, gold answer: {gold_parsed}")
                     reward = None
             else:
                 reward = None
-                print("无法解析标准答案: ", sol)
+                print("Cannot parse gold answer: ", sol)
                 
         except Exception as e:
-            print(f"解析错误: {e}")
+            print(f"Parsing error: {e}")
             reward = None
             
         rewards.append(reward)
@@ -109,7 +111,7 @@ def _calculate_confidence_bonus(content: str) -> float:
     """Calculate confidence reward"""
     confidence_indicators = [
         "therefore", "thus", "hence", "clearly", "obviously",
-        "确实", "显然", "因此", "所以", "综上"
+        "indeed", "evidently", "consequently", "so", "in conclusion"
     ]
     
     bonus = 0.0
@@ -129,7 +131,7 @@ def format_reward(completions, **kwargs):
     for content in completion_contents:
         base_reward = 1.0 if re.match(pattern, content, re.DOTALL | re.MULTILINE) else 0.0
         
-        # 添加结构完整性奖励
+        # Add structural integrity reward
         structure_bonus = _calculate_structure_bonus(content)
         total_reward = base_reward + structure_bonus
         
@@ -170,11 +172,11 @@ def _calculate_structure_bonus(content: str) -> float:
 
 
 def tag_count_reward(completions, **kwargs) -> list[float]:
-    """增强的标签计数奖励函数"""
+    """Enhanced tag count reward function"""
     def count_tags_enhanced(text: str) -> float:
         score = 0.0
         
-        # 基础标签检查
+        # Basic tag checking
         if text.count("<think>\n") == 1:
             score += 0.25
         if text.count("\n</think>\n") == 1:
@@ -184,7 +186,7 @@ def tag_count_reward(completions, **kwargs) -> list[float]:
         if text.count("\n</answer>") == 1:
             score += 0.25
         
-        # 惩罚多余的标签
+        # Penalty for excessive tags
         excess_penalty = 0.0
         if text.count("<think>") > 1:
             excess_penalty += 0.1 * (text.count("<think>") - 1)
@@ -207,7 +209,7 @@ def reasoning_steps_reward(completions, **kwargs):
         'step_indicators': r"(Step \d+:|^\d+\.|\n-|\n\*)",
         'transition_words': r"(First,|Second,|Next,|Then,|Finally,|Therefore,)",
         'mathematical_reasoning': r"(Since|Because|Given that|Let|Assume|Suppose)",
-        'chinese_reasoning': r"(首先|其次|然后|接下来|最后|因为|由于|设|假设)"
+        'logical_reasoning': r"(First|Second|Then|Next|Finally|Because|Since|Let|Assume)"
     }
     
     completion_contents = [completion[0]["content"] for completion in completions]
@@ -224,7 +226,7 @@ def reasoning_steps_reward(completions, **kwargs):
                 score += min(0.4, matches * 0.1)  # Maximum 0.4 points
             elif pattern_type == 'transition_words':
                 score += min(0.3, matches * 0.05)  # Maximum 0.3 points
-            elif pattern_type in ['mathematical_reasoning', 'chinese_reasoning']:
+            elif pattern_type in ['mathematical_reasoning', 'logical_reasoning']:
                 score += min(0.15, matches * 0.03)  # Maximum 0.15 points each
         
         # Check reasoning coherence
@@ -242,9 +244,9 @@ def _calculate_coherence_bonus(content: str) -> float:
     
     # Check for logical connectors
     logical_connectors = ["however", "moreover", "furthermore", "in addition", "on the other hand"]
-    chinese_connectors = ["但是", "而且", "此外", "另外", "另一方面"]
+    english_connectors = ["but", "and", "furthermore", "additionally", "alternatively"]
     
-    all_connectors = logical_connectors + chinese_connectors
+    all_connectors = logical_connectors + english_connectors
     connector_count = sum(1 for connector in all_connectors if connector in content.lower())
     
     bonus += min(0.1, connector_count * 0.02)
@@ -284,8 +286,8 @@ def mathematical_rigor_reward(completions, **kwargs) -> list[float]:
         # English mathematical terms
         "equation", "function", "derivative", "integral", "theorem", "proof", "lemma",
         "hypothesis", "conclusion", "contradiction", "sufficient", "necessary",
-        # Chinese mathematical terms
-        "方程", "函数", "导数", "积分", "定理", "证明", "引理", "假设", "结论", "矛盾", "充分", "必要"
+        # Additional mathematical terms
+        "formula", "calculation", "solve", "variable", "coefficient", "polynomial", "linear"
     ]
     
     for content in completion_contents:
@@ -301,7 +303,7 @@ def mathematical_rigor_reward(completions, **kwargs) -> list[float]:
         score += min(0.4, symbol_count * 0.1)
         
         # Check logical structure
-        logical_structure = ["if", "then", "therefore", "since", "because", "如果", "那么", "因此", "由于"]
+        logical_structure = ["if", "then", "therefore", "since", "because", "when", "thus", "consequently", "given"]
         logic_count = sum(1 for logic in logical_structure if logic in content.lower())
         score += min(0.3, logic_count * 0.1)
         
@@ -310,7 +312,7 @@ def mathematical_rigor_reward(completions, **kwargs) -> list[float]:
     return rewards
 
 
-# 奖励函数注册表
+# Reward function registry
 REWARD_FUNCS_REGISTRY = {
     "accuracy": accuracy_reward,
     "format": format_reward,
@@ -323,31 +325,29 @@ REWARD_FUNCS_REGISTRY = {
 
 def create_reward_functions(reward_names: List[str]) -> List[Callable]:
     """
-    根据名称列表创建奖励函数列表
-    
-    Args:
-        reward_names: 奖励函数名称列表
-        
-    Returns:
-        List[Callable]: 奖励函数列表
+    Create reward functions based on configuration
     """
-    reward_funcs = []
+    functions = []
     
     for name in reward_names:
         if name in REWARD_FUNCS_REGISTRY:
-            reward_funcs.append(REWARD_FUNCS_REGISTRY[name])
+            func = REWARD_FUNCS_REGISTRY[name]
+            # Create a wrapper that includes the configuration
+            def configured_func(completions: list[list[dict[str, str]]], func=func, **kwargs):
+                return func(completions, **kwargs)
+            functions.append(configured_func)
         else:
             available_funcs = list(REWARD_FUNCS_REGISTRY.keys())
-            raise ValueError(f"未知的奖励函数: {name}. 可用的函数: {available_funcs}")
+            raise ValueError(f"Unknown reward function: {name}. Available functions: {available_funcs}")
     
-    return reward_funcs
+    return functions
 
 
 def get_available_reward_functions() -> List[str]:
-    """获取所有可用的奖励函数名称"""
+    """Get all available reward function names"""
     return list(REWARD_FUNCS_REGISTRY.keys())
 
 
 def get_reward_calculator(reward_funcs: List[str], reward_weights: List[float] = None) -> RewardCalculator:
-    """获取奖励计算器实例"""
+    """Get reward calculator instance"""
     return RewardCalculator(reward_funcs, reward_weights)
