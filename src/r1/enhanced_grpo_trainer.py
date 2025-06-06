@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 import torch
 from transformers import TrainerCallback, TrainerState, TrainerControl
 from trl import GRPOTrainer
-from r1.rewards import get_reward_calculator
+from .rewards import get_reward_calculator
 
 
 logger = logging.getLogger(__name__)

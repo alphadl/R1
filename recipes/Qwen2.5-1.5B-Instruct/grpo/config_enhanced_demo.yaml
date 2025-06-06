@@ -21,6 +21,7 @@ reward_funcs:
   - format
   - reasoning_steps
   - tag_count
+  - length
   - mathematical_rigor
 
 # 奖励函数权重 (新增)
@@ -29,6 +30,7 @@ reward_weights:
   - 1.0    # format: 标准权重
   - 2.0    # reasoning_steps: 中等权重
   - 1.0    # tag_count: 标准权重
+  - 0.8    # length: 较低权重 (响应长度控制)
   - 1.5    # mathematical_rigor: 中等权重
 
 # 训练超参数
