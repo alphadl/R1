@@ -351,3 +351,17 @@ def get_available_reward_functions() -> List[str]:
 def get_reward_calculator(reward_funcs: List[str], reward_weights: List[float] = None) -> RewardCalculator:
     """Get reward calculator instance"""
     return RewardCalculator(reward_funcs, reward_weights)
+
+
+def get_reward_funcs(script_args):
+    """
+    Get reward functions based on script arguments
+    
+    Args:
+        script_args: Script arguments containing reward function configuration
+        
+    Returns:
+        List of reward functions
+    """
+    reward_names = getattr(script_args, 'reward_funcs', ['accuracy', 'format'])
+    return create_reward_functions(reward_names)

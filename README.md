@@ -1,6 +1,6 @@
-# R1 - Lightweight GRPO Training Framework
+# R1 - Lightweight Enhanced GRPO Training Framework
 
-A lightweight Group-based Preference Optimization (GRPO) training framework built on Hugging Face transformers, optimized for reasoning model training.
+A lightweight enhanced Group-based Preference Optimization (GRPO) training framework with more verifiable rewards and real-time evaluators.
 
 [English](#english) | [中文](#中文)
 
