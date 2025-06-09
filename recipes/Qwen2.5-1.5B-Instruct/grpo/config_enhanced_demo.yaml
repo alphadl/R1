@@ -5,14 +5,14 @@
 model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
 hub_model_id: qwen2.5-1.5b-instruct-grpo-enhanced
 
-# 训练数据集
-dataset_name: open-r1/Mixture-of-Thoughts
-dataset_config: all
-dataset_prompt_column: prompt
+# 训练数据集 - 使用数学问题数据集以支持accuracy奖励函数
+dataset_name: open-r1/OpenR1-Math-220k
+dataset_config: null
+dataset_prompt_column: problem  # 数学数据集使用'problem'作为提示列
 
 # 评估数据集 (新增)
-eval_dataset_name: gsm8k
-eval_dataset_config: main
+eval_dataset_name: null  # 暂时禁用评估数据集
+eval_dataset_config: null
 eval_dataset_split: test
 
 # 增强的奖励函数配置
@@ -54,7 +54,7 @@ eval_max_new_tokens: 1024
 
 # 实时评估配置 (新增)
 eval_steps: 50          # 每50步评估一次
-eval_on_start: true     # 训练开始前评估
+eval_on_start: false    # 禁用训练开始前评估，因为没有评估数据集
 max_eval_samples: 50    # 限制评估样本数量
 
 # 拒绝采样配置 (新增)

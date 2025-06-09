@@ -14,11 +14,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 # Import R1 modules
 from src.r1.configs import load_config, GRPOScriptArguments, GRPOConfig
-from src.r1.enhanced_grpo_trainer import EnhancedGRPOTrainer
 from src.r1.utils.logging import setup_logger
 from src.r1.rewards import get_reward_funcs
 from src.r1.utils import get_dataset, get_model, get_tokenizer
-from trl import ModelConfig, get_peft_config
+from trl import ModelConfig, get_peft_config, GRPOTrainer
 
 
 def main():
@@ -49,7 +48,42 @@ def main():
         # Use the loaded config directly as it's already a GRPOScriptArguments object
         script_args = config
         
-        # Create training args from loaded config
+        if args.dry_run:
+            logger.info("🧪 Dry run mode - configuration validation completed")
+            return
+        
+        # Load dataset, model, and tokenizer
+        logger.info("📊 Loading dataset...")
+        dataset = get_dataset(script_args)
+        
+        # Load evaluation dataset if specified
+        eval_dataset = None
+        eval_strategy = "no"  # 默认禁用评估
+        
+        if hasattr(script_args, 'eval_dataset_name') and getattr(script_args, 'eval_dataset_name', None):
+            logger.info(f"📊 Loading evaluation dataset: {script_args.eval_dataset_name}")
+            try:
+                import datasets
+                eval_ds = datasets.load_dataset(
+                    script_args.eval_dataset_name, 
+                    getattr(script_args, 'eval_dataset_config', None),
+                    split=getattr(script_args, 'eval_dataset_split', 'test')
+                )
+                # Limit eval samples if specified
+                max_eval_samples = getattr(script_args, 'max_eval_samples', None)
+                if max_eval_samples and len(eval_ds) > max_eval_samples:
+                    eval_dataset = eval_ds.select(range(max_eval_samples))
+                else:
+                    eval_dataset = eval_ds
+                eval_strategy = "steps"  # 如果有评估数据集，启用评估
+                logger.info(f"✓ Loaded {len(eval_dataset)} evaluation samples")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not load evaluation dataset: {e}")
+                logger.info("🔄 Continuing without evaluation dataset")
+                eval_dataset = None
+                eval_strategy = "no"
+        
+        # Create training args from loaded config (after determining eval strategy)
         training_args = GRPOConfig(
             output_dir=getattr(config, 'output_dir', './data/enhanced-demo'),
             per_device_train_batch_size=getattr(config, 'per_device_train_batch_size', 2),
@@ -76,8 +110,9 @@ def main():
             top_p=getattr(config, 'top_p', 1.0),
             
             # Evaluation
-            eval_strategy=getattr(config, 'eval_strategy', "no"),
+            eval_strategy=eval_strategy,  # 使用动态确定的评估策略
             eval_steps=getattr(config, 'eval_steps', 50),
+            eval_on_start=getattr(config, 'eval_on_start', False),  # 添加eval_on_start参数
             
             # Logging
             report_to=["tensorboard"],
@@ -90,7 +125,7 @@ def main():
         
         # Display new feature configurations
         new_features = {
-            'Real-time Evaluation': training_args.eval_steps,
+            'Real-time Evaluation': training_args.eval_steps if eval_strategy != "no" else "Disabled",
             'Reject Sampling': getattr(config, 'use_reject_sampling', False),
             'Enhanced Rewards': getattr(script_args, 'reward_funcs', []),
             'Performance Optimization': getattr(config, 'use_liger_kernel', False),
@@ -99,14 +134,6 @@ def main():
         logger.info("🎯 New Features Configuration:")
         for feature, value in new_features.items():
             logger.info(f"  {feature}: {value}")
-        
-        if args.dry_run:
-            logger.info("🧪 Dry run mode - configuration validation completed")
-            return
-        
-        # Load dataset, model, and tokenizer
-        logger.info("📊 Loading dataset...")
-        dataset = get_dataset(script_args)
         
         logger.info("🤖 Loading model and tokenizer...")
         tokenizer = get_tokenizer(model_args, training_args)
@@ -117,24 +144,18 @@ def main():
         reward_funcs = get_reward_funcs(script_args)
         
         # Create and setup enhanced trainer
-        logger.info("🔧 Creating Enhanced GRPO Trainer...")
+        logger.info("🔧 Creating GRPO Trainer...")
         
-        trainer = EnhancedGRPOTrainer(
+        trainer = GRPOTrainer(
             model=model,
-            reward_funcs=reward_funcs,
             args=training_args,
             train_dataset=dataset[getattr(script_args, 'dataset_train_split', 'train')],
-            eval_dataset=(dataset[getattr(script_args, 'dataset_test_split', 'test')] if training_args.eval_strategy != "no" else None),
+            eval_dataset=eval_dataset,  # 提供评估数据集
+            processing_class=tokenizer,  # 使用processing_class而不是tokenizer
+            reward_funcs=reward_funcs,  # 添加奖励函数
             peft_config=get_peft_config(model_args),
-            processing_class=tokenizer,
-            # Enhanced features
-            eval_steps=training_args.eval_steps,
-            log_completion_details=True,
-            reward_config={
-                'reward_funcs': getattr(script_args, 'reward_funcs', []),
-                'reward_weights': getattr(script_args, 'reward_weights', {}),
-            }
         )
+        logger.info("✅ GRPO Trainer created successfully!")
         
         # Start training
         logger.info("🚀 Starting enhanced training...")
